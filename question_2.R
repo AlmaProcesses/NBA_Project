@@ -58,6 +58,6 @@ g_west <- isSameConferenceMatch %>% filter(conference == "WEST") %>%
   facet_wrap(~conference)
 patchwork <- g_east + g_west
 patchwork + plot_annotation(
-  title = "Wins per team grouped by conference",
+  title = "Wins per team grouped by conference during the Regular Season",
   theme = theme(plot.title = element_text(hjust = 0.45))
 )
