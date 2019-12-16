@@ -25,15 +25,13 @@ match_conference_winner <- matches %>%
 match_team_winner <- match_conference_winner %>%
   group_by(winner) %>%
   tally() %>%
-  mutate(count = n) %>%
-  select(-n) %>%
+  rename(count = n) %>%
   ungroup()
 
 match_team_conference_win <- match_conference_winner %>%
   group_by(winner) %>%
   count(conferenceMatch) %>%
-  mutate (count = n) %>%
-  select(-n) %>%
+  rename(count = n) %>%
   ungroup()
 
 isSameConferenceMatch <- match_team_conference_win %>%
