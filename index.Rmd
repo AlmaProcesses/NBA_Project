@@ -1,0 +1,175 @@
+---
+title: "Data Processes Project Report"
+author: 
+  - "Carlos Sánchez" 
+  - "Alvaro Cayetano" 
+  - "Angel Beltran"
+date: "12/16/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 12)
+if (!requireNamespace("dplyr"))
+  install.packages('dplyr')
+if (!requireNamespace("tidyr"))
+  install.packages('tidyr')
+if (!requireNamespace("ggplot2"))
+  install.packages('ggplot2')
+if (!requireNamespace("devtools"))
+  install.packages('devtools')
+if (!requireNamespace("rvest"))
+  install.packages('rvest')
+if (!requireNamespace('patchwork'))
+  install.packages('patchwork')
+source('question_2.R')
+```
+### Introduction and Related Work (**10 points**)
+- Provides a clear motivation for answering a _specific_ data driven question of interest (**5 points**)
+- Cites 5 _relevant_ pieces of relevant work (whatever format you choose is fine, including just a hyperlink) (**1 point each**)
+
+### Exploratory Data Analysis (**20 points**)
+- Introduces the dataset by describing the origin (source) and structure (shape, relevant features) of the data being used (**5 points**)
+
+#### Datasets
+
+The dataset has been produced using the R package [nbastatR](http://asbcllc.com/nbastatR/), which parses information from the official [NBA API](https://stats.nba.com/) and different pages containing NBA historic data like [Hoopshype.com](https://hoopshype.com/). The dataset containing the teams salary has been obtained from [Hoopshype.com](https://hoopshype.com/salaries/2018-2019/ "Hoopshype page for 2018 - 2019 salaries") and extracted using a web scraping [script](../master/utils/player_salary_scrapper.R) which recolects the data from the page of the salaries for the 2018-2019 season. There are different datasets:
+
+##### Draft Dataset
+
+This dataset contains information about the 2018 Draft players Team in the NBA.
+
+This dataset consists of one csv file. It's named [draft.csv](../master/data/draft.csv), and it is a list of the teams of the draft players sorted by the pick overall number and it shows the destination teams. It has 60 observations and 15 features.
+
+| Column | Type | Description |
+| :------| :----| :-----------|
+| `yearDraft` | num | The year when the player was drafted |
+| `numberPickOverral` | num | The order of the pick |
+| `numberRound` | num | The round of the pick |
+| `numberRoundPick` | num | The order of the pick in its round |
+| `namePlayer` | chr | The complete name of the player |
+| `slugTeam` | chr | The abbreviation of the team which did the pick |
+| `nameOrganizationFrom` | chr | Name of the college or team the player comes from |
+| `typeOrganizationFrom` | chr | Type of organization the player comes from |
+| `idPlayer` | num | The id of the player on the NBA API |
+| `idTeam` | num | The id of the team on the NBA API |
+| `nameTeam` | chr | The complete name of the team |
+| `cityTeam` | chr | The city where the team is based (for GSW is not Oakland nor San Francisco) |
+| `teamName` | chr | The name of the team |
+| `slugOrganizationTypeFrom` | chr | The abbreviation of `typeOrganizationFrom`|
+| `locationOrganizationFrom` | chr | The country of the origin organization if this is outside the USA |
+
+##### Match Statistics Dataset
+
+This dataset contains statistics about the NBA games during the 2018-19 season.
+
+This dataset consists of one csv file. It's named [regularseason1819_games.csv](../master/data/regularseason1819_games.csv). It has 2460 observations and 47 features.
+
+| Column | Type | Description |
+| :------| :----| :-----------|
+| `yearSeason` | num | The year when the statistics were taken |
+| `slugSeason`| num | The season of the match |
+| `slugLeague`| chr | League name abbreviation|
+| `typeSeason`| chr | Type of season (always `Regular Season`) |
+| `dateGame`| date | Date the match was played |
+| `idGame`| num | Id of the match on the NBA API|
+| `numberGameTeamSeason`| num | Match order for the team |
+| `nameTeam`| num | Name of the team |
+| `idTeam`| num | Id of the team on the NBA API|
+| `isB2B`| logi | The match was a back to back |
+| `isB2BFirst`| logi | The match was the first back to back |
+| `isB2BSecond`| logi | The match was the second back to back |
+| `locationGame`| chr | Location where the match was played |
+| `slugMatchup`| chr | Abbreviation of the match |
+| `slugTeam`| chr | Abbreviation of the team |
+| `countDaysRestTeam`| num | Days the team had for resting before the match |
+| `countDaysNextGameTeam`| num | Days before the next team's match |
+| `slugOpponent`| chr | Abbreviation of the opponent team |
+| `slugTeamWinner`| chr | Abbreviation of the winner team |
+| `slugTeamLoser`| chr | Abbreviation of the defeated team |
+| `outcomeGame`| chr | The abbreviation of the result (`W|L`) |
+| `isWin`| logi | True if the team won the match |
+| `fgmTeam`| num | Field goals made by the team |
+| `fgaTeam`| num | Field goals attempted by the team |
+| `pctFGTeam`| num | % of field goals made vs attempted |
+| `fg3mTeam`| num | 3-pts field goals made by the team |
+| `fg3aTeam`| num | 3-pts field goals attempted by the team |
+| `pctFG3Team`| num | % of 3-pts field goals made vs attempted |
+| `pctFTTeam`| num | % of free throws scored |
+| `hasVideo`| logi |  |
+| `fg2mTeam`| num | 2-pts field goals made by the team |
+| `fg2aTeam`| num | 2-pts field goals attempted by the team |
+| `pctFG2Team`| num | % of 2-pts field goals attempted by the team |
+| `minutesTeam`| num | Minutes played by the team|
+| `ftmTeam`| num | Free throws made by the team |
+| `ftaTeam`| num | Free throws attempted by the team |
+| `orebTeam`| num | Offensive rebounds of the team |
+| `drebTeam`| num | Defensive rebounds of the team |
+| `trebTeam`| num | Total rebounds of the team |
+| `astTeam`| num | Number of assists of the team |
+| `stlTeam`| num | Number of steals of the team |
+| `blkTeam`| num | Number of blocks of the team |
+| `tovTeam`| num | Number of turnovers of the team |
+| `pfTeam`| num | Number of personal fouls of the team |
+| `ptsTeam`| num | Points scored by the team |
+| `plusminusTeam`| num | Difference of points scored with the other team |
+| `urlTeamSeasonLogo`| chr | Url with the logo of the team |
+
+##### Salaries Dataset
+
+This dataset contains information about the salaries of the players of each Team in the NBA.
+
+This dataset consists of two csv files. The first one, [salaries_team.csv](../master/data/salaries_team.csv), is a list of the teams of the NBA and the sum of their players' salaries. It has 30 observations and 4 features.
+
+| Column | Type | Description |
+| :------| :----| :-----------|
+| `nameTeam` | chr | Name of the team |
+| `idTeam` | num | Id of the team |
+| `slugTeam` | chr | The abbreviation of `nameTeam` |
+| `salaries` | num | Sum of the salaries of the players of the team |
+
+The second one, [salaries_player.csv](../master/data/salaries_player.csv), is a list of the players of all the teams of the NBA and his salaries. It has 621 observations and 3 features.
+
+| Column | Type | Description |
+| :------| :----| :-----------|
+| `Player` | chr | Name of the player |
+| `Salary` | num | Player's salary |
+| `Team` | chr |  Name of the team where the player plays |
+
+- Creates 5 well designed and formatted graphics (**15 points**, 3 each)
+  - The visual uses the appropriate visual encodings based on the data type (**1 point**)
+  - Written interpretation of graphic is provided (**1 point**)
+  - Clear axis labels, titles, and legends are included, where appropriate (**1 point**)
+```{r echo=FALSE, code = readLines("question_2.R")}
+```
+  
+### Methods (**30 points**)
+The appropriate methods are employed to answer the question of interest, including:
+- **Strength of relationships**: Uses the appropriate technique to assess the strength of relationships amongst your variables of interest. You should include: 
+  - A formula describing how you believe your features (independent variables) are related to your outcome of interest (dependent variable) (**5 points**)
+  - A defense of the variables included in your formula (**5 points**)
+  - Creating the appropriate model based on your dataset (**5 points**)
+  
+```{r}
+```
+
+- **Prediction**: You must also make predictions for your outcome of interest. In doing so, you must demonstrate a clear use of:
+  - Splitting your data into testing/training data (**2 points**)
+  - Applying cross validation to your model (**3 points**)
+  - Appropriately handling any missing values (**2 points**)
+  - Appropriately using categorical variables (**3 points**)
+  - Using a grid search to find the best parameters for you model of interest (**2 points**)
+  - Employing the algorithm of interest (**3 points**)
+  
+```{r}
+```
+
+### Results (**20 points**)
+You must provide a clear interpretation of your statistical and machine learning results, including at least **one visual or table** for each.
+- **Strengths of relationships**: For the features you included in your model, you must describe the strength (significance) and magnitude of the relationships. This can be presented in a table or chart, and pertinent observations should be described in the text. (**10 points**)
+- **Predictions**: How well were you able to predict values in the dataset? You should both report appropriate metrics based on the type of outcome you're predicting (e.g., root mean squared error v.s. accuracy), as well as a high quality visual showing the strength of your model (**10 points**)
+
+### Discussion and Future Work (**10 points**)
+Based on _specific observations_ from the results section, the report clearly provides:
+  - An analysis of the real world implications of the results, at least one full paragraph (**5 points**)
+  - Clear suggestion for directions of future research, at least one full paragraph (**5 points**)
