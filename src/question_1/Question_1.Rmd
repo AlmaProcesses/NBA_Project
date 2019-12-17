@@ -26,7 +26,6 @@ if (!requireNamespace("rvest"))
 if (!requireNamespace("nbastatR"))
   devtools::install_github("abresler/nbastatR")
 ```
-
 ### Introduction and Related Work (**10 points**)
 - Provides a clear motivation for answering a _specific_ data driven question of interest (**5 points**)
 - Cites 5 _relevant_ pieces of relevant work (whatever format you choose is fine, including just a hyperlink) (**1 point each**)
