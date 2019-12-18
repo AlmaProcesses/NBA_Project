@@ -221,10 +221,56 @@ This dataset consists of one csv file. The first one, [nba_teams.csv](https://gi
 | `idDivision` | num | Id of the team division |
 | `urlThumbnailTeam` | chr | Url with the logo of the team |
 
+  
+```{r, include=FALSE, echo=FALSE}
+source("playersStatsSalary.R")
+
+```
 - Creates 5 well designed and formatted graphics (**15 points**, 3 each)
   - The visual uses the appropriate visual encodings based on the data type (**1 point**)
   - Written interpretation of graphic is provided (**1 point**)
   - Clear axis labels, titles, and legends are included, where appropriate (**1 point**)
+
+```{r, echo=FALSE, fig.width = 12}
+ggplot(merged, aes(x = countSeasons, y = sqrt(Salary))) +
+  ggtitle("Nº Seasons x Salary") +
+  geom_point(color="#050853") +
+  stat_summary(aes(y = sqrt(Salary), group = 1), fun.y = mean, colour = 'red', geom = 'line', group = 1)
+```
+
+```{r, ggplot2, echo=FALSE, fig.width = 12}
+ggplot() + 
+  geom_point(data=merged, aes(x=countSeasons, y=sqrt(Salary)), color="#050853") + 
+  ggtitle("Nº Seasons x Salary x Experience in other Leagues") +
+  facet_wrap(~idLeagueOtherExperience, labeller = labeller(idLeagueOtherExperience = 
+         c("0" = "Only NBA",
+           "1" = "Other League")
+  ))  + 
+  theme(legend.position="right")
+```
+
+```{r, echo=FALSE, fig.width = 12}
+ggplot() + 
+  geom_point(data=merged, aes(x=minutes, y=pts, colour=sqrt(Salary))) + 
+  ggtitle("Minutes x Points x Salary") +
+  theme(legend.position="right") + 
+    facet_wrap(~idLeagueOtherExperience, labeller = labeller(idLeagueOtherExperience = 
+         c("0" = "Only NBA",
+           "1" = "Other League")
+  ))  + 
+  scale_colour_gradient(low="#369FF1", high="#050853")
+```
+Only NBA (usa players) has greater salaries and there is an exponential relationship between minutes and points but other Leagues (foreign players) has lower salaries and minutes and points follows a linear relation.
+
+```{r, echo=FALSE, fig.width = 12}
+ggplot() + 
+  geom_point(data=merged, aes(x=minutes, y=pts, colour=sqrt(Salary))) + 
+    ggtitle("Performance x nº of Seasons x Salary") +
+  theme(legend.position="right") + 
+    facet_wrap(~countSeasons)  + 
+  scale_colour_gradient(low="#369FF1", high="#050853")
+```
+This graph shows how performance and salary evolves over the seasons.
   
 ### Methods (**30 points**)
 The appropriate methods are employed to answer the question of interest, including:
@@ -233,8 +279,6 @@ The appropriate methods are employed to answer the question of interest, includi
   - A defense of the variables included in your formula (**5 points**)
   - Creating the appropriate model based on your dataset (**5 points**)
   
-```{r}
-```
 
 - **Prediction**: You must also make predictions for your outcome of interest. In doing so, you must demonstrate a clear use of:
   - Splitting your data into testing/training data (**2 points**)
