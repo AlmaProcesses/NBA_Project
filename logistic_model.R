@@ -72,7 +72,7 @@ reduced_aggr_data <- stats_aggr %>%
   filter(!is.na(countSeasons)) %>%
   select(-slugTeam)
 
-ml_data <- reduced_aggr_data %>% select(-namePlayer, -TeamSalary, -pctSalaryTeam, -pctSalaryTotal)
+ml_data <- reduced_aggr_data %>% select(-namePlayer, -TeamSalary, -pctSalaryTeam, -Salary)
 
 fitControl <- trainControl(
   method = "cv", # Cross validation
@@ -81,18 +81,18 @@ fitControl <- trainControl(
 
 grid <- expand.grid(k = 1:20)
 
-trainIndex <- createDataPartition(ml_data$Salary, p = .80, list = FALSE, times = 1)
+trainIndex <- createDataPartition(ml_data$pctSalaryTotal, p = .80, list = FALSE, times = 1)
 
 training_set <- ml_data[ trainIndex, ]
 test_set <- ml_data[ -trainIndex, ]
 
-basic_fit <- train(Salary ~ .,
+basic_fit <- train(pctSalaryTotal ~ .,
                    data = ml_data,
                    method = "parRF", # Parallel Random Forest
                    trControl = fitControl,
                    na.action = na.exclude)
 basic_preds <- predict(basic_fit, test_set)
 
-test_predicted <- test_set %>% mutate(predictions = basic_preds) %>% select(Salary, predictions)
+test_predicted <- test_set %>% mutate(predictions = basic_preds) %>% select(pctSalaryTotal, predictions)
 
-mae_value <- MAE(basic_preds, test_set$Salary)
+mae_value <- MAE(basic_preds, test_set$pctSalaryTotal)
