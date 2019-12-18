@@ -1,16 +1,16 @@
 ---
 title: "Data Processes Project Report"
 author: 
-  - "Carlos Patiño" 
-  - "Alvaro Cayetano" 
-  - "Angel Beltran"
-  - "Daniel Gamonal"
+  - "Carlos Sanchez" 
+  - "Alvaro Arranz" 
+  - "Angel González"
+  - "Daniel Saíz"
 date: "12/16/2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.width = 12)
+```{r setup, include=FALSE, cache=TRUE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 20)
 if (!requireNamespace("dplyr"))
   install.packages('dplyr')
 if (!requireNamespace("tidyr"))
@@ -23,44 +23,131 @@ if (!requireNamespace("rvest"))
   install.packages('rvest')
 if (!requireNamespace('patchwork'))
   install.packages('patchwork')
-source('question_2.R')
 ```
-### Introduction and Related Work (**10 points**)
-- Provides a clear motivation for answering a _specific_ data driven question of interest (**5 points**)
-- Cites 5 _relevant_ pieces of relevant work (whatever format you choose is fine, including just a hyperlink) (**1 point each**)
 
-### Exploratory Data Analysis (**20 points**)
-- Introduces the dataset by describing the origin (source) and structure (shape, relevant features) of the data being used (**5 points**)
+```{r load-packages, include=FALSE}
+library(knitr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(devtools)
+library(rvest)
+library(patchwork)
+```
 
+```{r, include=FALSE, echo=FALSE}
+source("utils/question_2_func.R")
+
+matches <- read.csv("data/regularseason1819_games.csv", stringsAsFactors = F)
+teams <- read.csv("data/nba_teams.csv", stringsAsFactors = F)
+
+teams <- teams %>% mutate(conference = sapply(idConference, conference_classifier))
+matches <- matches %>% select(-urlTeamSeasonLogo) %>%
+  rowwise() %>%
+  mutate(conferenceMatch = type_match(teams, slugTeam, slugOpponent)) %>%
+  ungroup()
+
+match_conference_winner <- matches %>%
+  group_by(idGame) %>% 
+  summarise(winner = first(slugTeamWinner),
+            loser = first(slugTeamLoser),
+            conferenceMatch = first(conferenceMatch)) %>%
+  rowwise() %>%
+  mutate(conferenceWinner = teams[teams$slugTeam == winner, "conference"]) %>%
+  ungroup()
+```
+### Introduction and Related Work
+
+On the project proposal we formulated 3 different questions. We decide to answer the second one about the gap between east and west conferences.
+
+
+One of our member followed for years the NBA and during that period of time the Western conference teams ruled the league with Golden State Warriors on the head. Only the Cleveland Cavaliers and Miami Heat, thanks to LeBron James could fight against the best western team. During the last 8 seasons, LeBron James won 4 rings (3 with Miami Heats and 1 with Cleveland Cavaliers) and played 7 finals. 
+
+
+LeBron James is one of the best players in the NBA history, and he is able to lead a whole team to the victory almost by himself, but this is not the case with any other player of the league at this moment. LeBron moved to Los Angeles Lakers on the last season, and the project wasn't complete, which is one of the reasons to select the season 2018/2019 to avoid an outlier on the eastern team where LeBron is playing.
+
+
+To check if we were sure about our assumptions, we loaded the Match Statistics Dataset and performed several transformations to retrieve the data we wanted.
+
+
+```{r, knitr, dplyr, echo=FALSE}
+
+kable(match_conference_winner %>%
+  filter(conferenceMatch == "MIXED") %>%
+  count(conferenceWinner) %>%
+  rename(Conference = conferenceWinner, Wins = n)
+)
+```
+
+
+It seems like the gap between the West and the East is still there, but with this simple table we cannot be sure the data is not biased by low performing teams. To check this we plotted the wins against teams of the same conference and teams of the other, clustering the results by conferences. The script which generates the following chart can be found [here](https://github.com/AlmaProcesses/NBA_Project/blob/master/question_2.R)
+
+
+```{r, patchwork, echo=FALSE}
+
+match_team_winner <- match_conference_winner %>%
+  group_by(winner) %>%
+  tally() %>%
+  rename(count = n) %>%
+  ungroup()
+
+match_team_conference_win <- match_conference_winner %>%
+  group_by(winner) %>%
+  count(conferenceMatch) %>%
+  rename(count = n) %>%
+  ungroup()
+
+isSameConferenceMatch <- match_team_conference_win %>%
+  rowwise() %>%
+  mutate(isSame = if(conferenceMatch != "MIXED") "SAME" else "MIXED") %>%
+  left_join(teams, by = c("winner" = "slugTeam")) %>%
+  select(winner, conferenceMatch, count, isSame, conference)
+
+g_east <- isSameConferenceMatch %>% filter(conference == "EAST") %>%
+  ggplot(aes(fill = isSame, y = count, x = winner)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  ylim(0, 45) +
+  facet_wrap(~conference)
+
+g_west <- isSameConferenceMatch %>% filter(conference == "WEST") %>%
+  ggplot(aes(fill = isSame, y = count, x = winner)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  ylim(0, 45) +
+  scale_fill_discrete(name = "Conference", labels = c("Opposite", "Same")) +
+  facet_wrap(~conference)
+
+patchwork <- g_east + g_west
+
+patchwork + plot_annotation(
+  title = "Wins per team grouped by conference during the Regular Season",
+  theme = theme(plot.title = element_text(hjust = 0.45))
+)
+```
+
+
+We can see how West teams perform better than East ones on the cross matches. The eastern team with the most victories during the regular season was Toronto Raptors, which finally won the playoffs finals against Golden State Warriors. With this visualization we can assure the West conference was stronger than the East conference during the season 2018/2019.
+
+
+Here you will find several relevant work about this question that we want to answer:
+
+ * [The Talent Difference Between the West and Eastern Conferences](https://thegruelingtruth.com/basketball/the-talent-difference-between-the-west-and-eastern-conferences/)
+ * [COMPETITIVE BALANCE IN THE NBA: Comparative analysis of Eastern and Western Conferences](http://pagines.uab.cat/appliedeconomics/sites/pagines.uab.cat.appliedeconomics/files/Brosed,%20M._paper.pdf)
+ * [NBA Predictions for the 2019-2020 Season](https://www.sbnation.com/nba/2019/10/22/20899122/nba-predictions-2019-2020-season-mvp-championship-nba-finals-lakers-clippers)
+   
+### Exploratory Data Analysis
 #### Datasets
 
-The dataset has been produced using the R package [nbastatR](http://asbcllc.com/nbastatR/), which parses information from the official [NBA API](https://stats.nba.com/) and different pages containing NBA historic data like [Hoopshype.com](https://hoopshype.com/). The dataset containing the teams salary has been obtained from [Hoopshype.com](https://hoopshype.com/salaries/2018-2019/ "Hoopshype page for 2018 - 2019 salaries") and extracted using a web scraping [script](../master/utils/player_salary_scrapper.R) which recolects the data from the page of the salaries for the 2018-2019 season. There are different datasets:
 
-##### Draft Dataset
+The dataset has been produced using the R package [nbastatR](http://asbcllc.com/nbastatR/), which parses information from the official [NBA API](https://stats.nba.com/) and different pages containing NBA historic data like [Hoopshype.com](https://hoopshype.com/). There are two different datasets:
 
-This dataset contains information about the 2018 Draft players Team in the NBA.
-
-This dataset consists of one csv file. It's named [draft.csv](https://github.com/AlmaProcesses/NBA_Project/blob/master/data/draft.csv), and it is a list of the teams of the draft players sorted by the pick overall number and it shows the destination teams. It has 60 observations and 15 features.
-
-| Column | Type | Description |
-| :------| :----| :-----------|
-| `yearDraft` | num | The year when the player was drafted |
-| `numberPickOverral` | num | The order of the pick |
-| `numberRound` | num | The round of the pick |
-| `numberRoundPick` | num | The order of the pick in its round |
-| `namePlayer` | chr | The complete name of the player |
-| `slugTeam` | chr | The abbreviation of the team which did the pick |
-| `nameOrganizationFrom` | chr | Name of the college or team the player comes from |
-| `typeOrganizationFrom` | chr | Type of organization the player comes from |
-| `idPlayer` | num | The id of the player on the NBA API |
-| `idTeam` | num | The id of the team on the NBA API |
-| `nameTeam` | chr | The complete name of the team |
-| `cityTeam` | chr | The city where the team is based (for GSW is not Oakland nor San Francisco) |
-| `teamName` | chr | The name of the team |
-| `slugOrganizationTypeFrom` | chr | The abbreviation of `typeOrganizationFrom`|
-| `locationOrganizationFrom` | chr | The country of the origin organization if this is outside the USA |
 
 ##### Match Statistics Dataset
+
 
 This dataset contains statistics about the NBA games during the 2018-19 season.
 
@@ -116,48 +203,23 @@ This dataset consists of one csv file. It's named [regularseason1819_games.csv](
 | `plusminusTeam`| num | Difference of points scored with the other team |
 | `urlTeamSeasonLogo`| chr | Url with the logo of the team |
 
-##### Salaries Dataset
+##### Teams Dataset
 
-This dataset contains information about the salaries of the players of each Team in the NBA.
+This dataset contains information about the Teams in the NBA.
 
-This dataset consists of two csv files. The first one, [salaries_team.csv](https://github.com/AlmaProcesses/NBA_Project/blob/master/data/salaries_team.csv), is a list of the teams of the NBA and the sum of their players' salaries. It has 30 observations and 4 features.
+This dataset consists of one csv file. The first one, [nba_teams.csv](https://github.com/AlmaProcesses/NBA_Project/blob/master/data/nba_teams.csv), is a list of the teams of the NBA and their information. It has 30 observations and 9 features.
 
 | Column | Type | Description |
 | :------| :----| :-----------|
 | `nameTeam` | chr | Name of the team |
 | `idTeam` | num | Id of the team |
-| `slugTeam` | chr | The abbreviation of `nameTeam` |
-| `salaries` | num | Sum of the salaries of the players of the team |
-
-The second one, [salaries_player.csv](https://github.com/AlmaProcesses/NBA_Project/blob/master/data/salaries_player.csv), is a list of the players of all the teams of the NBA and his salaries. It has 621 observations and 3 features.
-
-| Column | Type | Description |
-| :------| :----| :-----------|
-| `Player` | chr | Name of the player |
-| `Salary` | num | Player's salary |
-| `Team` | chr |  Name of the team where the player plays |
-
-#### Data Exploration
-
-On the project proposal we formulated 3 different questions. One of our member followed for years the NBA and during that period of time the Western conference teams ruled the league with Golden State Warriors on the head. Only the Cleveland Cavaliers and Miami Heat, thanks to LeBron James could fight against the best western team. During the last 8 seasons, LeBron James won 4 rings (3 with Miami Heats and 1 with Cleveland Cavaliers) and played 7 finals. LeBron James is one of the best players in the NBA history, and he is able to lead a whole team to the victory almost by himself, but this is not the case with any other player of the league at this moment. LeBron moved to Los Angeles Lakers on the last season, and the project wasn't complete, which is one of the reasons to select the season 2018/2019 to avoid an outlier on the eastern team where LeBron is playing.
-
-To check if we were sure about our assumptions, we loaded the Match Statistics Dataset and performed several transformations to retrieve the data we wanted.
-
-```{r, echo=FALSE}
-library(knitr)
-kable(match_conference_winner %>%
-  filter(conferenceMatch == "MIXED") %>%
-  count(conferenceWinner) %>%
-  rename(Conference = conferenceWinner, Wins = n)
-)
-```
-
-It seems like the gap between the West and the East is still there, but with this simple table we cannot be sure the data is not biased by low performing teams. To check this we plotted the wins against teams of the same conference and teams of the other, clustering the results by conferences. The script which generates the following chart can be found [here](https://github.com/AlmaProcesses/NBA_Project/blob/master/question_2.R)
-
-```{r echo=FALSE, code = readLines("question_2.R")}
-```
-
-We can see how West teams perform better than East ones on the cross matches. The eastern team with the most victories during the regular season was Toronto Raptors, which finally won the playoffs finals against Golden State Warriors. With this visualization we can assure the West conference was stronger than the East conference during the season 2018/2019.
+| `slugTeam` | chr | The acronym of the `nameTeam` |
+| `teamName` | chr | The colloquial name of the `nameTeam` |
+| `cityTeam` | chr | Name of the City where the team belongs |
+| `teamNameFull` | chr | The abbreviation of the `nameTeam` |
+| `idConference` | num | Id of the team conference |
+| `idDivision` | num | Id of the team division |
+| `urlThumbnailTeam` | chr | Url with the logo of the team |
 
 - Creates 5 well designed and formatted graphics (**15 points**, 3 each)
   - The visual uses the appropriate visual encodings based on the data type (**1 point**)
