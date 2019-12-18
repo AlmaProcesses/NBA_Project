@@ -12,8 +12,21 @@ set.seed(2403)
 salaries_players <- read.csv('data/salaries_player.csv', stringsAsFactors = F) %>%
   group_by(Player) %>%
   summarise(Salary = as.integer(mean(Salary)))
+salaries_teams <- read.csv('data/salaries_team.csv', stringsAsFactors = F)
 info_players <- read.csv('data/players.csv', stringsAsFactors = F)
 stats_players <- read.csv('data/logs_players.csv', stringsAsFactors = F)
+
+totalSalary <- sum(salaries_teams$salaries)
+
+salaries_joined <- salaries_players %>%
+  left_join(select(info_players, namePlayer, idTeam),
+            by = c('Player' = 'namePlayer')) %>%
+  filter(!is.na(idTeam)) %>%
+  left_join(select(salaries_teams, -nameTeam) %>%
+              rename(TeamSalary = salaries),
+            by = 'idTeam') %>%
+  mutate(pctSalaryTeam = Salary / TeamSalary,
+         pctSalaryTotal = Salary / totalSalary)
 
 stats_aggr <- stats_players %>%
   group_by(namePlayer) %>%
@@ -40,8 +53,8 @@ stats_aggr <- stats_players %>%
 
 merged_player_tables <- info_players %>%
   filter(yearSeasonFirst < 2019) %>%
-  left_join(salaries_players, by = c('namePlayer' = 'Player')) %>%
-  select(namePlayer, countSeasons, Salary) %>%
+  left_join(salaries_joined, by = c('namePlayer' = 'Player')) %>%
+  select(namePlayer, countSeasons, Salary, TeamSalary, pctSalaryTeam, pctSalaryTotal) %>%
   filter(!is.na(Salary))
 
 player_seasons <- info_players %>% select(namePlayer, countSeasons)
@@ -51,24 +64,35 @@ ggplot(merged_player_tables, aes(x = countSeasons, y = sqrt(Salary))) +
   stat_summary(aes(y = sqrt(Salary), group = 1), fun.y = mean, colour = 'red', geom = 'line', group = 1)
 
 reduced_aggr_data <- stats_aggr %>%
-  select(namePlayer, minutes, pts, ast, treb, blk, stl) %>%
-  left_join(salaries_players, by = c('namePlayer' = 'Player')) %>%
+  select(namePlayer, minutes, pts, ast, treb, blk, stl, pctFG, pctFG3, tov) %>%
+  left_join(select(salaries_joined,
+                   -idTeam,
+                   slugTeam), by = c('namePlayer' = 'Player')) %>%
   left_join(player_seasons) %>%
   filter(!is.na(countSeasons)) %>%
-  mutate(sqrt_salary = sqrt(Salary))
+  select(-slugTeam)
 
-logistic_model <- glm(sqrt_salary ~ minutes + pts + ast + treb + blk + stl, data = reduced_aggr_data)
-summary(logistic_model)
-plot(logistic_model)
+ml_data <- reduced_aggr_data %>% select(-namePlayer, -TeamSalary, -pctSalaryTeam, -pctSalaryTotal)
 
-trainIndex <- createDataPartition(reduced_aggr_data$sqrt_salary, p = .85, list = FALSE, times = 1)
+fitControl <- trainControl(
+  method = "cv", # Cross validation
+  number = 10    # 10 fold
+)
 
-training_set <- reduced_aggr_data[ trainIndex, ]
-test_set <- reduced_aggr_data[ -trainIndex, ]
+grid <- expand.grid(k = 1:20)
 
-basic_fit <- train(sqrt_salary ~ ., data = reduced_aggr_data, method = "knn")
+trainIndex <- createDataPartition(ml_data$Salary, p = .80, list = FALSE, times = 1)
+
+training_set <- ml_data[ trainIndex, ]
+test_set <- ml_data[ -trainIndex, ]
+
+basic_fit <- train(Salary ~ .,
+                   data = ml_data,
+                   method = "parRF", # Parallel Random Forest
+                   trControl = fitControl,
+                   na.action = na.exclude)
 basic_preds <- predict(basic_fit, test_set)
 
-test_predicted <- test_set %>% mutate(predictions = basic_preds)
+test_predicted <- test_set %>% mutate(predictions = basic_preds) %>% select(Salary, predictions)
 
-mae_value <- MAE(basic_preds, test_set$sqrt_salary)
+mae_value <- MAE(basic_preds, test_set$Salary)
