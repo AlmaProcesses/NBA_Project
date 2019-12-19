@@ -1,8 +1,8 @@
 ---
 title: "Data Processes Project Report"
-author: 
-  - "Carlos Sanchez" 
-  - "Alvaro Arranz" 
+author:
+  - "Carlos Sanchez"
+  - "Alvaro Arranz"
   - "Angel González"
   - "Daniel Saíz"
 date: "12/16/2019"
@@ -23,6 +23,8 @@ if (!requireNamespace("rvest"))
   install.packages('rvest')
 if (!requireNamespace('patchwork'))
   install.packages('patchwork')
+if (!requireNamespace('normtest'))
+  install.packages('normtest')
 ```
 
 ```{r load-packages, include=FALSE}
@@ -49,7 +51,7 @@ matches <- matches %>% select(-urlTeamSeasonLogo) %>%
   ungroup()
 
 match_conference_winner <- matches %>%
-  group_by(idGame) %>% 
+  group_by(idGame) %>%
   summarise(winner = first(slugTeamWinner),
             loser = first(slugTeamLoser),
             conferenceMatch = first(conferenceMatch)) %>%
@@ -62,7 +64,7 @@ match_conference_winner <- matches %>%
 On the project proposal we formulated 3 different questions. We decide to answer the second one about the gap between east and west conferences.
 
 
-One of our member followed for years the NBA and during that period of time the Western conference teams ruled the league with Golden State Warriors on the head. Only the Cleveland Cavaliers and Miami Heat, thanks to LeBron James could fight against the best western team. During the last 8 seasons, LeBron James won 4 rings (3 with Miami Heats and 1 with Cleveland Cavaliers) and played 7 finals. 
+One of our member followed for years the NBA and during that period of time the Western conference teams ruled the league with Golden State Warriors on the head. Only the Cleveland Cavaliers and Miami Heat, thanks to LeBron James could fight against the best western team. During the last 8 seasons, LeBron James won 4 rings (3 with Miami Heats and 1 with Cleveland Cavaliers) and played 7 finals.
 
 
 LeBron James is one of the best players in the NBA history, and he is able to lead a whole team to the victory almost by himself, but this is not the case with any other player of the league at this moment. LeBron moved to Los Angeles Lakers on the last season, and the project wasn't complete, which is one of the reasons to select the season 2018/2019 to avoid an outlier on the eastern team where LeBron is playing.
@@ -138,7 +140,7 @@ Here you will find several relevant work about this question that we want to ans
  * [The Talent Difference Between the West and Eastern Conferences](https://thegruelingtruth.com/basketball/the-talent-difference-between-the-west-and-eastern-conferences/)
  * [COMPETITIVE BALANCE IN THE NBA: Comparative analysis of Eastern and Western Conferences](http://pagines.uab.cat/appliedeconomics/sites/pagines.uab.cat.appliedeconomics/files/Brosed,%20M._paper.pdf)
  * [NBA Predictions for the 2019-2020 Season](https://www.sbnation.com/nba/2019/10/22/20899122/nba-predictions-2019-2020-season-mvp-championship-nba-finals-lakers-clippers)
-   
+
 ### Exploratory Data Analysis
 #### Datasets
 
@@ -221,11 +223,57 @@ This dataset consists of one csv file. The first one, [nba_teams.csv](https://gi
 | `idDivision` | num | Id of the team division |
 | `urlThumbnailTeam` | chr | Url with the logo of the team |
 
+
+```{r, include=FALSE, echo=FALSE}
+source("playersStatsSalary.R")
+
+```
 - Creates 5 well designed and formatted graphics (**15 points**, 3 each)
   - The visual uses the appropriate visual encodings based on the data type (**1 point**)
   - Written interpretation of graphic is provided (**1 point**)
   - Clear axis labels, titles, and legends are included, where appropriate (**1 point**)
-  
+
+```{r, echo=FALSE, fig.width = 12}
+ggplot(merged, aes(x = countSeasons, y = sqrt(Salary))) +
+  ggtitle("Nº Seasons x Salary") +
+  geom_point(color="#050853") +
+  stat_summary(aes(y = sqrt(Salary), group = 1), fun.y = mean, colour = 'red', geom = 'line', group = 1)
+```
+
+```{r, ggplot2, echo=FALSE, fig.width = 12}
+ggplot() +
+  geom_point(data=merged, aes(x=countSeasons, y=sqrt(Salary)), color="#050853") +
+  ggtitle("Nº Seasons x Salary x Experience in other Leagues") +
+  facet_wrap(~idLeagueOtherExperience, labeller = labeller(idLeagueOtherExperience =
+         c("0" = "Only NBA",
+           "1" = "Other League")
+  ))  +
+  theme(legend.position="right")
+```
+
+```{r, echo=FALSE, fig.width = 12}
+ggplot() +
+  geom_point(data=merged, aes(x=minutes, y=pts, colour=sqrt(Salary))) +
+  ggtitle("Minutes x Points x Salary") +
+  theme(legend.position="right") +
+    facet_wrap(~idLeagueOtherExperience, labeller = labeller(idLeagueOtherExperience =
+         c("0" = "Only NBA",
+           "1" = "Other League")
+  ))  +
+  scale_colour_gradient(low="#369FF1", high="#050853")
+```
+Only NBA (usa players) has greater salaries and there is an exponential relationship between minutes and points but other Leagues (foreign players) has lower salaries and minutes and points follows a linear relation.
+
+```{r, echo=FALSE, fig.width = 12}
+ggplot() +
+  geom_point(data=merged, aes(x=minutes, y=pts, colour=sqrt(Salary))) +
+    ggtitle("Performance x nº of Seasons x Salary") +
+  theme(legend.position="right") +
+    facet_wrap(~countSeasons)  +
+  scale_colour_gradient(low="#369FF1", high="#050853")
+```
+This graph shows how performance and salary evolves over the seasons.
+
 ### Methods (**30 points**)
 We want to create a ML model which can predict the salary of a player taking into account various features extracted from the season 2019-2019 statistic. At the end, the scope of this model is to predict how much could earn a player from another league if he moves to the NBA.
 
@@ -317,7 +365,7 @@ We set a repeated cross-validation control to the model and also a grid with 3 d
 ```{r, cache = T, echo= T, warning=F}
 fitControl <- trainControl(
   method = "repeatedcv",
-  number = 10, 
+  number = 10,
   repeats = 3
 )
 
