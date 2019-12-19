@@ -10,7 +10,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE, cache=TRUE}
-knitr::opts_chunk$set(echo = TRUE, fig.width = 20)
+#knitr::opts_chunk$set(echo = TRUE, fig.width = 20)
 if (!requireNamespace("dplyr"))
   install.packages('dplyr')
 if (!requireNamespace("tidyr"))
@@ -33,6 +33,7 @@ library(ggplot2)
 library(devtools)
 library(rvest)
 library(patchwork)
+library(caret)
 ```
 
 ```{r, include=FALSE, echo=FALSE}
@@ -83,8 +84,7 @@ kable(match_conference_winner %>%
 It seems like the gap between the West and the East is still there, but with this simple table we cannot be sure the data is not biased by low performing teams. To check this we plotted the wins against teams of the same conference and teams of the other, clustering the results by conferences. The script which generates the following chart can be found [here](https://github.com/AlmaProcesses/NBA_Project/blob/master/question_2.R)
 
 
-```{r, patchwork, echo=FALSE}
-
+```{r, patchwork, fig.width=12, echo=FALSE}
 match_team_winner <- match_conference_winner %>%
   group_by(winner) %>%
   tally() %>%
@@ -227,29 +227,128 @@ This dataset consists of one csv file. The first one, [nba_teams.csv](https://gi
   - Clear axis labels, titles, and legends are included, where appropriate (**1 point**)
   
 ### Methods (**30 points**)
-The appropriate methods are employed to answer the question of interest, including:
-- **Strength of relationships**: Uses the appropriate technique to assess the strength of relationships amongst your variables of interest. You should include: 
-  - A formula describing how you believe your features (independent variables) are related to your outcome of interest (dependent variable) (**5 points**)
-  - A defense of the variables included in your formula (**5 points**)
-  - Creating the appropriate model based on your dataset (**5 points**)
-  
-```{r}
-```
+We want to create a ML model which can predict the salary of a player taking into account various features extracted from the season 2019-2019 statistic. At the end, the scope of this model is to predict how much could earn a player from another league if he moves to the NBA.
 
-- **Prediction**: You must also make predictions for your outcome of interest. In doing so, you must demonstrate a clear use of:
-  - Splitting your data into testing/training data (**2 points**)
-  - Applying cross validation to your model (**3 points**)
-  - Appropriately handling any missing values (**2 points**)
-  - Appropriately using categorical variables (**3 points**)
-  - Using a grid search to find the best parameters for you model of interest (**2 points**)
-  - Employing the algorithm of interest (**3 points**)
-  
-```{r}
+To explore which features are related with our outcome interest, we opted to obtain the correlation matrix of our dataset.
+```{r, cache=T, include = F}
+salaries_players <- read.csv('data/salaries_player.csv', stringsAsFactors = F) %>%
+  group_by(Player) %>%
+  summarise(Salary = as.integer(mean(Salary)))
+salaries_teams <- read.csv('data/salaries_team.csv', stringsAsFactors = F)
+info_players <- read.csv('data/players.csv', stringsAsFactors = F)
+stats_players <- read.csv('data/logs_players.csv', stringsAsFactors = F)
+
+totalSalary <- sum(salaries_teams$salaries)
+
+salaries_joined <- salaries_players %>%
+  left_join(select(info_players, namePlayer, idTeam),
+            by = c('Player' = 'namePlayer')) %>%
+  filter(!is.na(idTeam)) %>%
+  left_join(select(salaries_teams, -nameTeam) %>%
+              rename(TeamSalary = salaries),
+            by = 'idTeam') %>%
+  mutate(pctSalaryTeam = Salary / TeamSalary,
+         pctSalaryTotal = Salary / totalSalary)
+
+stats_aggr <- stats_players %>%
+  group_by(namePlayer) %>%
+  summarize(winrate = mean(isWin == TRUE),
+            minutes = mean(minutes, na.rm=TRUE),
+            pts = mean(pts, na.rm=TRUE),
+            ast = mean(ast, na.rm=TRUE),
+            plusminus = mean(plusminus, na.rm=TRUE),
+            blk = mean(blk, na.rm=TRUE),
+            stl = mean(stl, na.rm=TRUE),
+            pctFG3 = mean(pctFG3, na.rm=TRUE),
+            tov = mean(tov, na.rm=TRUE),
+            pctFG = mean(pctFG, na.rm=TRUE),
+            oreb = mean(oreb, na.rm=TRUE),
+            dreb = mean(dreb, na.rm=TRUE),
+            pf = mean(pf, na.rm=TRUE),
+            treb = mean(treb, na.rm=TRUE),
+            fg2m = mean(fg2m, na.rm=TRUE),
+            fg2a = mean(fg2a, na.rm=TRUE),
+            fga = mean(fga, na.rm=TRUE),
+            fgm = mean(fgm, na.rm=TRUE),
+            ftm = mean(ftm, na.rm=TRUE))%>%
+  ungroup()
+
+merged_player_tables <- info_players %>%
+  filter(yearSeasonFirst < 2019) %>%
+  left_join(salaries_joined, by = c('namePlayer' = 'Player')) %>%
+  select(namePlayer, countSeasons, Salary, TeamSalary, pctSalaryTeam, pctSalaryTotal) %>%
+  filter(!is.na(Salary))
+
+player_seasons <- info_players %>% select(namePlayer, countSeasons)
+
+reduced_aggr_data <- stats_aggr %>%
+  left_join(select(salaries_joined,
+                   -idTeam,
+                   slugTeam), by = c('namePlayer' = 'Player')) %>%
+  left_join(player_seasons) %>%
+  filter(!is.na(countSeasons), pctFG != 'NaN') %>%
+  select(-slugTeam)
+
+pre_ml_data <- reduced_aggr_data %>%
+  select(-namePlayer, -TeamSalary, -pctSalaryTeam, -Salary)
+
+cor_matrix <- cor(pre_ml_data, method = "pearson")
+cor_salary <- cor_matrix[20,] %>% sort(T)
+```
+`r kable(cor_matrix[1:6,1:6])`
+The full matrix cannot be displayed on this report because it has so many elements. Anyways, we're only interested on the correlations with the response variable, so we will only pick the row of the matrix were these correlations are displayed
+`r kable(cor_salary)`
+We're going to pick only the features with more than 0.5 of correlation with the response variables, including `stl` since its correlation value is 0.496.
+
+Having selected the features to be included in the formula, we have a formula with 10 features. To split the data we're going to set a seed and set the partition rate on 80/20 for training and testing.
+```{r, cache = T}
+set.seed(2403)
+ml_data <- pre_ml_data %>%
+  select(pts, fgm, minutes, ftm, countSeasons, tov, fg2m, dreb, ast, stl, pctSalaryTotal)
+
+trainIndex <- createDataPartition(ml_data$pctSalaryTotal, p = .8, list = FALSE, times = 1)
+
+training_set <- ml_data[ trainIndex, ]
+test_set <- ml_data[ -trainIndex, ]
+```
+Once we have the data splitted, we have to set our model. We chose a Parallel Random Forest, provided in the `caret` package because is the one of the most accurate machine learning algorithms available nowadays.
+
+We set a repeated cross-validation control to the model and also a grid with 3 different `mtry` values.
+```{r, cache = T, echo= T, warning=F}
+fitControl <- trainControl(
+  method = "repeatedcv",
+  number = 10, 
+  repeats = 3
+)
+
+tune_grid <- expand.grid(.mtry = c(2,6,10))
+
+model_fit <- train(pctSalaryTotal ~ .,
+                   data = ml_data,
+                   method = "parRF", # Parallel Random Forest
+                   trControl = fitControl,
+                   tuneGrid = tune_grid,
+                   na.action = na.exclude)
+model_preds <- predict(model_fit, test_set)
 ```
 
 ### Results (**20 points**)
-You must provide a clear interpretation of your statistical and machine learning results, including at least **one visual or table** for each.
-- **Strengths of relationships**: For the features you included in your model, you must describe the strength (significance) and magnitude of the relationships. This can be presented in a table or chart, and pertinent observations should be described in the text. (**10 points**)
+
+Once the model has been trained, we can check the different `mtry` values tested and how they performed.
+```{r, echo = F}
+print(model_fit)
+
+mae_value <- MAE(model_preds, test_set$pctSalaryTotal)
+
+mae_salary <- mae_value * totalSalary
+```
+As we can see in the model report, the best RMSE obtained is 0.001329462.
+
+We have to take into account the response variable is not the salary but the % of salary compared with the total of NBA salaries. So if we multiply the MAE by this amount, we get the MAE on the original variable of `r as.integer(mae_salary)`. Taking into account our dataset only contains data of one season and the are a lot of factors affecting the players salaries which are not part of the game itself, we're really satisfied with the performance of our model.
+
+With this results we could provide a quite accurate prediction of their salaries to players from other leagues who want to move to the NBA. Anyways, they'd have to wait for some years to take into account this prediction since the first years the salary is totally conditioned by the position in the draft.
+
+
 - **Predictions**: How well were you able to predict values in the dataset? You should both report appropriate metrics based on the type of outcome you're predicting (e.g., root mean squared error v.s. accuracy), as well as a high quality visual showing the strength of your model (**10 points**)
 
 ### Discussion and Future Work (**10 points**)

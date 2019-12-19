@@ -85,20 +85,23 @@ fitControl <- trainControl(
   repeats = 3
 )
 
-trainIndex <- createDataPartition(ml_data$pctSalaryTotal, p = .80, list = FALSE, times = 1)
+tune_grid <- expand.grid(.mtry = c(2,6,10))
+
+trainIndex <- createDataPartition(ml_data$pctSalaryTotal, p = .8, list = FALSE, times = 1)
 
 training_set <- ml_data[ trainIndex, ]
 test_set <- ml_data[ -trainIndex, ]
 
-basic_fit <- train(pctSalaryTotal ~ .,
+model_fit <- train(pctSalaryTotal ~ .,
                    data = ml_data,
                    method = "parRF", # Parallel Random Forest
                    trControl = fitControl,
+                   tuneGrid = tune_grid,
                    na.action = na.exclude)
-basic_preds <- predict(basic_fit, test_set)
+model_preds <- predict(model_fit, test_set)
 
-test_predicted <- test_set %>% mutate(predictions = basic_preds) %>% select(pctSalaryTotal, predictions)
+test_predicted <- test_set %>% mutate(predictions = model_preds) %>% select(pctSalaryTotal, predictions)
 
-mae_value <- MAE(basic_preds, test_set$pctSalaryTotal)
+mae_value <- MAE(model_preds, test_set$pctSalaryTotal)
 
 mae_salary <- mae_value * totalSalary
