@@ -9,8 +9,6 @@ library(normtest)
 library(tseries)
 library(GGally)
 
-setwd("C:/workspace/University/DataProcesses/NBA_Project")
-
 salaries_players <-read.csv("./data/salaries_player.csv", stringsAsFactors = F)
 
 
