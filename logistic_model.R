@@ -64,22 +64,26 @@ ggplot(merged_player_tables, aes(x = countSeasons, y = sqrt(Salary))) +
   stat_summary(aes(y = sqrt(Salary), group = 1), fun.y = mean, colour = 'red', geom = 'line', group = 1)
 
 reduced_aggr_data <- stats_aggr %>%
-  select(namePlayer, minutes, pts, ast, treb, blk, stl, pctFG, pctFG3, tov) %>%
   left_join(select(salaries_joined,
                    -idTeam,
                    slugTeam), by = c('namePlayer' = 'Player')) %>%
   left_join(player_seasons) %>%
-  filter(!is.na(countSeasons)) %>%
+  filter(!is.na(countSeasons), pctFG != 'NaN') %>%
   select(-slugTeam)
 
-ml_data <- reduced_aggr_data %>% select(-namePlayer, -TeamSalary, -pctSalaryTeam, -Salary)
+pre_ml_data <- reduced_aggr_data %>%
+  select(-namePlayer, -TeamSalary, -pctSalaryTeam, -Salary)
+
+cor_matrix <- cor(pre_ml_data, method = "pearson")[20,] %>% sort(T)
+
+ml_data <- pre_ml_data %>%
+  select(pts, fgm, minutes, ftm, countSeasons, tov, fg2m, dreb, ast, stl, pctSalaryTotal)
 
 fitControl <- trainControl(
-  method = "cv", # Cross validation
-  number = 10    # 10 fold
+  method = "repeatedcv", # Cross validation
+  number = 10,    # 10 fold
+  repeats = 3
 )
-
-grid <- expand.grid(k = 1:20)
 
 trainIndex <- createDataPartition(ml_data$pctSalaryTotal, p = .80, list = FALSE, times = 1)
 
@@ -96,3 +100,5 @@ basic_preds <- predict(basic_fit, test_set)
 test_predicted <- test_set %>% mutate(predictions = basic_preds) %>% select(pctSalaryTotal, predictions)
 
 mae_value <- MAE(basic_preds, test_set$pctSalaryTotal)
+
+mae_salary <- mae_value * totalSalary
