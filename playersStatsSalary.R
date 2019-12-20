@@ -9,16 +9,15 @@ library(normtest)
 library(tseries)
 library(GGally)
 
-salaries_players <-read.csv("./data/salaries_player.csv", stringsAsFactors = F)
+salaries_players <-read.csv("data/salaries_player.csv", stringsAsFactors = F)
+
+stats_players <-read.csv("data/logs_players.csv", stringsAsFactors = F)
 
 
-stats_players <-read.csv("./data/logs_players.csv", stringsAsFactors = F)
+player_data <-read.csv("data/players.csv", stringsAsFactors = F)
 
 
-player_data <-read.csv("./data/players.csv", stringsAsFactors = F)
-
-
-teams_data <-read.csv("./data/nba_teams.csv", stringsAsFactors = F)
+teams_data <-read.csv("data/nba_teams.csv", stringsAsFactors = F)
 
 
 stats_aggr <- stats_players %>%
