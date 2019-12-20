@@ -93,7 +93,7 @@ kable(match_conference_winner %>%
 ```
 
 
-It seems like the gap between the West and the East is still there, but with this simple table we cannot be sure the data is not biased by low performing teams. To check this we plotted the wins against teams of the same conference and teams of the other, clustering the results by conferences. The script which generates the following chart can be found [here](https://github.com/AlmaProcesses/NBA_Project/blob/master/question_2.R)
+It seems like the gap between the West and the East is still there, but with this simple table we cannot be sure the data is not biased by low performing teams. To check this we plotted the wins against teams of the same conference and teams of the other, clustering the results by conferences. The script which generates the following chart can be found [here](https://github.com/AlmaProcesses/NBA_Project/blob/master/scripts/question_2.R)
 
 ```{r, patchwork, fig.width=12, echo=FALSE}
 match_team_winner <- match_conference_winner %>%
@@ -260,7 +260,7 @@ This dataset consists of one csv file. The first one, [nba_teams.csv](https://gi
 #### Data Visualizations
 
 ```{r, include=FALSE, echo=FALSE}
-source("playersStatsSalary.R")
+source("scripts/playersStatsSalary.R")
 
 ```
 
