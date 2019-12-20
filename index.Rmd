@@ -61,6 +61,14 @@ match_conference_winner <- matches %>%
   mutate(conferenceWinner = teams[teams$slugTeam == winner, "conference"]) %>%
   ungroup()
 ```
+### Abstract
+
+This project tries to answer a new question which appreared while we were working on the ones proposed a months ago, **How much could make a professional player from other big leagues in the NBA?**
+
+To answer this question, we modeled a Machine Learning model using the **Random Forest** algorithm. We obtained a quite satisfactory result taking into account we only have data from the last season, and the model could be improved introducing more data, not only related with NBA games but also with everything surrounding the teams and the league.
+
+To develop this project we used R with several libraries like **ggplot2**, **dplyr** and **caret**, covered by the book used in the lectures; but also we used [patchwork](https://github.com/thomasp85/patchwork) to help us with the graphs composition.
+
 ### Introduction and Related Work
 
 On the project proposal we formulated 3 different questions. We decide to answer the second one about the gap between east and west conferences.
@@ -86,7 +94,6 @@ kable(match_conference_winner %>%
 
 
 It seems like the gap between the West and the East is still there, but with this simple table we cannot be sure the data is not biased by low performing teams. To check this we plotted the wins against teams of the same conference and teams of the other, clustering the results by conferences. The script which generates the following chart can be found [here](https://github.com/AlmaProcesses/NBA_Project/blob/master/question_2.R)
-
 
 ```{r, patchwork, fig.width=12, echo=FALSE}
 match_team_winner <- match_conference_winner %>%
@@ -136,13 +143,16 @@ patchwork + plot_annotation(
 
 We can see how West teams perform better than East ones on the cross matches. The eastern team with the most victories during the regular season was Toronto Raptors, which finally won the playoffs finals against Golden State Warriors. With this visualization we can assure the West conference was stronger than the East conference during the season 2018/2019.
 
-Here you will find several relevant work about this question that we want to answer:
+Anyways, we have nothing to do with this information in order to develop a Machine Learning model, so we decided to change our question to the one stated at the introduction.
+
+To help us with the selection of the new question, we looked for information and found projects like the following ones:
 
  * [The Talent Difference Between the West and Eastern Conferences](https://thegruelingtruth.com/basketball/the-talent-difference-between-the-west-and-eastern-conferences/)
  * [COMPETITIVE BALANCE IN THE NBA: Comparative analysis of Eastern and Western Conferences](http://pagines.uab.cat/appliedeconomics/sites/pagines.uab.cat.appliedeconomics/files/Brosed,%20M._paper.pdf)
  * [NBA Predictions for the 2019-2020 Season](https://www.sbnation.com/nba/2019/10/22/20899122/nba-predictions-2019-2020-season-mvp-championship-nba-finals-lakers-clippers)
  * [2019-20 NBA Predictions](https://projects.fivethirtyeight.com/2020-nba-predictions/)
- * 
+ * [How to predict NBA Player Salaries With Data Science](https://medium.com/better-programming/predicting-nba-player-salary-with-data-science-c5702caa3f2e)
+
 
 ### Exploratory Data Analysis
 #### Datasets
@@ -316,8 +326,8 @@ ggplot() +
 This graph shows how performance and salary evolves over the seasons. It is clear that there are more players with few seasons (between 1 and 6) and that they are the ones who earns less money. As they have more experience their salary increases along with their performance, because they play more minutes and the points/minute ratio follows a much steeper trend.
 
 
-### Methods
-We want to create a ML model which can predict the salary of a player taking into account various features extracted from the season 2019-2019 statistic. At the end, the scope of this model is to predict how much could earn a player from another league if he moves to the NBA.
+### Machine Learning model
+We want to create a ML model which can predict the salary of a player taking into account various features extracted from the season 2019-2019 statistic. At the end, the scope of this model is to predict how much could earn a player from another league if he moves to the NBA. First of all, because the Salary is a really high number (some players received over 35 million dollars), we decided to transform the response variable to the percentage of the salary compared with the whole payroll of the NBA.
 
 To explore which features are related with our outcome interest, we opted to obtain the correlation matrix of our dataset.
 ```{r, cache=T, include = F}
@@ -411,11 +421,13 @@ fitControl <- trainControl(
   repeats = 3
 )
 
-tune_grid <- expand.grid(.mtry = c(2,6,10))
+tune_grid <- expand.grid(.mtry = c(1:10))
 
 model_fit <- train(pctSalaryTotal ~ .,
                    data = ml_data,
                    method = "parRF", # Parallel Random Forest
+                   preProcess="scale",
+                   importance = T,
                    trControl = fitControl,
                    tuneGrid = tune_grid,
                    na.action = na.exclude)
@@ -424,15 +436,17 @@ model_preds <- predict(model_fit, test_set)
 
 ### Results
 
-Once the model has been trained, we can check the different `mtry` values tested and how they performed.
+Once the model has been fit, we can check the different `mtry` values tested and how they performed.
+```{r, echo = F, warning= F, fig.width=12}
+ggplot(model_fit, type=c("g", "o")) +
+  xlab('Randomly Selected Predictors')
+```
+As we can see in the graph, the best `mtry` is 7, with a RMSE of 0.001333431.
 ```{r, echo = F}
-print(model_fit)
-
 mae_value <- MAE(model_preds, test_set$pctSalaryTotal)
 
 mae_salary <- mae_value * totalSalary
 ```
-As we can see in the model report, the best RMSE obtained is 0.001329462.
 
 We have to take into account the response variable is not the salary but the % of salary compared with the total of NBA salaries. So if we multiply the MAE by this amount, we get the MAE on the original variable of `r as.integer(mae_salary)`. Taking into account our dataset only contains data of one season and the are a lot of factors affecting the players salaries which are not part of the game itself, we're really satisfied with the performance of our model.
 
