@@ -275,7 +275,7 @@ ggplot(merged, aes(x = countSeasons, y = sqrt(Salary))) +
         plot.title = element_text(hjust = 0.5))
 
 ```
-This graph shows the distribution of salaries according to the number of seasons in the NBA and the trend that these values follow. We can see that the salary of the NBA players increases until 10 seasons and then it starts to decrease.
+This graph shows the distribution of salaries according to the number of seasons in the NBA and the trend that these values follow. We can see that the salary of the NBA players increases until 10 seasons and then it starts to decrease. So the more seasons played doesn't mean higher salaries. Aditionally, in the number of seasons in which the mean salary is higher, the SD is higher too, so there is not a clear tendency.
 
 ```{r, ggplot2, echo=FALSE, fig.width = 12}
 ggplot() +
@@ -290,7 +290,7 @@ ggplot() +
   theme(legend.position="right",
         plot.title = element_text(hjust = 0.5))
 ```
-If we split the first graph by the Experience in other Leagues (usually foreign players) We can observe that players with experience in other leagues have a higher salary than those who have played in other leagues. The trend seems to be the same in both cases but in foreign players we can see that the salary decrease comes earlier (it makes sense considering that these players come to the NBA older and play fewer seasons in this competition that the national players)
+If we split the first graph by the Experience in other Leagues (usually foreign players) we observe from only NBA players plot that there is no big correlation between number of seaons and  as the data is scattered. Nevertheless, the salaries from other leagues players follow a linear trend, the data is less scattered, in spite of the fact that the highest salaries belong to NBA players, and the mean of the salaries of a new player in NBA is lower if the player comes from other league.
 
 ```{r, echo=FALSE, fig.width = 12}
 ggplot() +
@@ -308,7 +308,7 @@ ggplot() +
         plot.title = element_text(hjust = 0.5)) +
   labs(colour = 'Salary (square root)')
 ```
-This chart compares the performance and salary of national and foreign players. The players that only have played in NBA have greater salaries and their points/minutes ratio follow an exponentional tendency. On the other hand, the players with experience in other leagues has lower salaries and their performance follows a linear trend. 
+This chart compares the performance and salary of national and foreign players. The players that only have played in NBA have greater salaries and their points/minutes ratio follow an exponentional tendency. On the other hand, the players with experience in other leagues has lower salaries in general and their performance follows a linear trend. In this case, the number of points per match is very well correlated with the minutes played. We can observe that the highest salaries belong to the players with more minutes played, although in the players who come from NBA, the highest salaries are distributed all along the players.
 
 ```{r, echo=FALSE, fig.width = 12}
 ggplot() +
@@ -322,7 +322,7 @@ ggplot() +
   ylab('Points') +
   xlab('Minutes played')
 ```
-This graph shows how performance and salary evolves over the seasons. It is clear that there are more players with few seasons (between 1 and 6) and that they are the ones who earns less money. As they have more experience their salary increases along with their performance, because they play more minutes and the points/minute ratio follows a much steeper trend.
+This set of graphs show how performance and salary evolves over the seasons. It is clear that there are more players with few seasons (between 1 and 6) and that they are the ones who earn less money. As they have more experience their salary increases along with their performance, because they play more minutes and the points/minute ratio follows a much steeper trend. In all the graphs in which we have enough data we infer that the more minutes played, the more points are scores, as it may sound obvious.
 
 
 ### Machine Learning model
