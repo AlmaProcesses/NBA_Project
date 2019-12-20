@@ -263,10 +263,9 @@ This dataset consists of one csv file. The first one, [nba_teams.csv](https://gi
 source("scripts/playersStatsSalary.R")
 
 ```
-
-##### Nº Seasons x Salary
 ```{r, echo=FALSE, fig.width = 12}
 ggplot(merged, aes(x = countSeasons, y = sqrt(Salary))) +
+  ggtitle("Nº Seasons x Salary") +
   geom_point(color="#050853") +
   stat_summary(aes(y = sqrt(Salary), group = 1),
                fun.y = mean, colour = 'red', geom = 'line', group = 1) +
@@ -278,9 +277,9 @@ ggplot(merged, aes(x = countSeasons, y = sqrt(Salary))) +
 ```
 This graph shows the distribution of salaries according to the number of seasons in the NBA and the trend that these values follow. We can see that the salary of the NBA players increases until 10 seasons and then it starts to decrease.
 
-##### Nº Seasons x Salary x Experience in other Leagues
 ```{r, ggplot2, echo=FALSE, fig.width = 12}
 ggplot() +
+  ggtitle("Nº Seasons x Salary x Experience in other Leagues") +
   geom_point(data=merged, aes(x=countSeasons, y=sqrt(Salary)), color="#050853") +
   facet_wrap(~idLeagueOtherExperience, labeller = labeller(idLeagueOtherExperience =
          c("0" = "Only NBA",
@@ -293,10 +292,10 @@ ggplot() +
 ```
 If we split the first graph by the Experience in other Leagues (usually foreign players) We can observe that players with experience in other leagues have a higher salary than those who have played in other leagues. The trend seems to be the same in both cases but in foreign players we can see that the salary decrease comes earlier (it makes sense considering that these players come to the NBA older and play fewer seasons in this competition that the national players)
 
-##### Minutes x Points x Salary
 ```{r, echo=FALSE, fig.width = 12}
 ggplot() +
   geom_point(data=merged, aes(x=minutes, y=pts, colour=sqrt(Salary))) +
+  ggtitle("Minutes x Points x Salary") +
   theme(legend.position="right") +
     facet_wrap(~idLeagueOtherExperience, labeller = labeller(idLeagueOtherExperience =
          c("0" = "Only NBA",
@@ -311,10 +310,10 @@ ggplot() +
 ```
 This chart compares the performance and salary of national and foreign players. The players that only have played in NBA have greater salaries and their points/minutes ratio follow an exponentional tendency. On the other hand, the players with experience in other leagues has lower salaries and their performance follows a linear trend. 
 
-##### Performance x nº of Seasons x Salary
 ```{r, echo=FALSE, fig.width = 12}
 ggplot() +
   geom_point(data=merged, aes(x=minutes, y=pts, colour=sqrt(Salary))) +
+  ggtitle("Performance x nº of Seasons x Salary") +
   theme(legend.position="right",
         plot.title = element_text(hjust = 0.5)) +
   facet_wrap(~countSeasons)  +
