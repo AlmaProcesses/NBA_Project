@@ -5,7 +5,7 @@ author:
   - "Álvaro Arranz Domínguez"
   - "Angel González López"
   - "Daniel Saiz González"
-date: "12/16/2019"
+date: "12/20/2019"
 output: html_document
 ---
 
@@ -438,7 +438,8 @@ model_preds <- predict(model_fit, test_set)
 Once the model has been fit, we can check the different `mtry` values tested and how they performed.
 ```{r, echo = F, warning= F, fig.width=12}
 ggplot(model_fit, type=c("g", "o")) +
-  xlab('Randomly Selected Predictors')
+  scale_x_discrete(name ="Randomly Selected Predictors", 
+                    limits=c(1:10))
 ```
 As we can see in the graph, the best `mtry` is 7, with a RMSE of 0.001333431.
 ```{r, echo = F}
