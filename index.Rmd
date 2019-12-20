@@ -1,10 +1,10 @@
 ---
 title: "Data Processes Project Report"
 author:
-  - "Carlos Sanchez"
-  - "Alvaro Arranz"
-  - "Angel González"
-  - "Daniel Saíz"
+  - "Carlos Sánchez Marín"
+  - "Álvaro Arranz Domínguez"
+  - "Angel González López"
+  - "Daniel Saiz González"
 date: "12/16/2019"
 output: html_document
 ---
@@ -136,22 +136,21 @@ patchwork + plot_annotation(
 
 We can see how West teams perform better than East ones on the cross matches. The eastern team with the most victories during the regular season was Toronto Raptors, which finally won the playoffs finals against Golden State Warriors. With this visualization we can assure the West conference was stronger than the East conference during the season 2018/2019.
 
-
 Here you will find several relevant work about this question that we want to answer:
 
  * [The Talent Difference Between the West and Eastern Conferences](https://thegruelingtruth.com/basketball/the-talent-difference-between-the-west-and-eastern-conferences/)
  * [COMPETITIVE BALANCE IN THE NBA: Comparative analysis of Eastern and Western Conferences](http://pagines.uab.cat/appliedeconomics/sites/pagines.uab.cat.appliedeconomics/files/Brosed,%20M._paper.pdf)
  * [NBA Predictions for the 2019-2020 Season](https://www.sbnation.com/nba/2019/10/22/20899122/nba-predictions-2019-2020-season-mvp-championship-nba-finals-lakers-clippers)
+ * [2019-20 NBA Predictions](https://projects.fivethirtyeight.com/2020-nba-predictions/)
+ * 
 
 ### Exploratory Data Analysis
 #### Datasets
-
 
 The dataset has been produced using the R package [nbastatR](http://asbcllc.com/nbastatR/), which parses information from the official [NBA API](https://stats.nba.com/) and different pages containing NBA historic data like [Hoopshype.com](https://hoopshype.com/). There are two different datasets:
 
 
 ##### Match Statistics Dataset
-
 
 This dataset contains statistics about the NBA games during the 2018-19 season.
 
@@ -207,6 +206,29 @@ This dataset consists of one csv file. It's named [regularseason1819_games.csv](
 | `plusminusTeam`| num | Difference of points scored with the other team |
 | `urlTeamSeasonLogo`| chr | Url with the logo of the team |
 
+### Salaries Dataset
+
+This dataset contains information about the salaries of the players of each Team in the NBA.
+
+It have been obtained from [Hoopshype.com](https://hoopshype.com/salaries/2018-2019/ "Hoopshype page for 2018 - 2019 salaries") and extracted using a web scraping [script](../master/utils/player_salary_scrapper.R) which recolects the data from the page of the salaries for the 2018-2019 season.
+
+This dataset consists of two csv files. The first one, [salaries_team.csv](../master/data/salaries_team.csv), is a list of the teams of the NBA and the sum of their players' salaries. It has 30 observations and 4 features.
+
+| Column | Type | Description |
+| :------| :----| :-----------|
+| `nameTeam` | chr | Name of the team |
+| `idTeam` | num | Id of the team |
+| `slugTeam` | chr | The abbreviation of `nameTeam` |
+| `salaries` | num | Sum of the salaries of the players of the team |
+
+The second one, [salaries_player.csv](../master/data/salaries_player.csv), is a list of the players of all the teams of the NBA and his salaries. It has 621 observations and 3 features.
+
+| Column | Type | Description |
+| :------| :----| :-----------|
+| `Player` | chr | Name of the player |
+| `Salary` | num | Player's salary |
+| `Team` | chr |  Name of the team where the player plays |
+
 ##### Teams Dataset
 
 This dataset contains information about the Teams in the NBA.
@@ -225,19 +247,16 @@ This dataset consists of one csv file. The first one, [nba_teams.csv](https://gi
 | `idDivision` | num | Id of the team division |
 | `urlThumbnailTeam` | chr | Url with the logo of the team |
 
+#### Data Visualizations
 
 ```{r, include=FALSE, echo=FALSE}
 source("playersStatsSalary.R")
 
 ```
-- Creates 5 well designed and formatted graphics (**15 points**, 3 each)
-  - The visual uses the appropriate visual encodings based on the data type (**1 point**)
-  - Written interpretation of graphic is provided (**1 point**)
-  - Clear axis labels, titles, and legends are included, where appropriate (**1 point**)
 
+##### Nº Seasons x Salary
 ```{r, echo=FALSE, fig.width = 12}
 ggplot(merged, aes(x = countSeasons, y = sqrt(Salary))) +
-  ggtitle("Nº Seasons x Salary") +
   geom_point(color="#050853") +
   stat_summary(aes(y = sqrt(Salary), group = 1),
                fun.y = mean, colour = 'red', geom = 'line', group = 1) +
@@ -249,11 +268,10 @@ ggplot(merged, aes(x = countSeasons, y = sqrt(Salary))) +
 ```
 This graph shows the distribution of salaries according to the number of seasons in the NBA and the trend that these values follow. We can see that the salary of the NBA players increases until 10 seasons and then it starts to decrease.
 
-
+##### Nº Seasons x Salary x Experience in other Leagues
 ```{r, ggplot2, echo=FALSE, fig.width = 12}
 ggplot() +
   geom_point(data=merged, aes(x=countSeasons, y=sqrt(Salary)), color="#050853") +
-  ggtitle("Nº Seasons x Salary x Experience in other Leagues") +
   facet_wrap(~idLeagueOtherExperience, labeller = labeller(idLeagueOtherExperience =
          c("0" = "Only NBA",
            "1" = "Other League")
@@ -265,10 +283,10 @@ ggplot() +
 ```
 If we split the first graph by the Experience in other Leagues (usually foreign players) We can observe that players with experience in other leagues have a higher salary than those who have played in other leagues. The trend seems to be the same in both cases but in foreign players we can see that the salary decrease comes earlier (it makes sense considering that these players come to the NBA older and play fewer seasons in this competition that the national players)
 
+##### Minutes x Points x Salary
 ```{r, echo=FALSE, fig.width = 12}
 ggplot() +
   geom_point(data=merged, aes(x=minutes, y=pts, colour=sqrt(Salary))) +
-  ggtitle("Minutes x Points x Salary") +
   theme(legend.position="right") +
     facet_wrap(~idLeagueOtherExperience, labeller = labeller(idLeagueOtherExperience =
          c("0" = "Only NBA",
@@ -283,10 +301,10 @@ ggplot() +
 ```
 This chart compares the performance and salary of national and foreign players. The players that only have played in NBA have greater salaries and their points/minutes ratio follow an exponentional tendency. On the other hand, the players with experience in other leagues has lower salaries and their performance follows a linear trend. 
 
+##### Performance x nº of Seasons x Salary
 ```{r, echo=FALSE, fig.width = 12}
 ggplot() +
   geom_point(data=merged, aes(x=minutes, y=pts, colour=sqrt(Salary))) +
-  ggtitle("Performance x nº of Seasons x Salary") +
   theme(legend.position="right",
         plot.title = element_text(hjust = 0.5)) +
   facet_wrap(~countSeasons)  +
@@ -298,7 +316,7 @@ ggplot() +
 This graph shows how performance and salary evolves over the seasons. It is clear that there are more players with few seasons (between 1 and 6) and that they are the ones who earns less money. As they have more experience their salary increases along with their performance, because they play more minutes and the points/minute ratio follows a much steeper trend.
 
 
-### Methods (**30 points**)
+### Methods
 We want to create a ML model which can predict the salary of a player taking into account various features extracted from the season 2019-2019 statistic. At the end, the scope of this model is to predict how much could earn a player from another league if he moves to the NBA.
 
 To explore which features are related with our outcome interest, we opted to obtain the correlation matrix of our dataset.
@@ -404,7 +422,7 @@ model_fit <- train(pctSalaryTotal ~ .,
 model_preds <- predict(model_fit, test_set)
 ```
 
-### Results (**20 points**)
+### Results
 
 Once the model has been trained, we can check the different `mtry` values tested and how they performed.
 ```{r, echo = F}
@@ -420,10 +438,12 @@ We have to take into account the response variable is not the salary but the % o
 
 With this results we could provide a quite accurate prediction of their salaries to players from other leagues who want to move to the NBA. Anyways, they'd have to wait for some years to take into account this prediction since the first years the salary is totally conditioned by the position in the draft.
 
+### Discussion and Future Work
+  
+To understand the implications this model may have in the world of the NBA, one must understand the economic workings of the organization itself. As we have mentioned in some points of the work, the first year of a player in his passage through the NBA means the entrance in the DRAFT. 
 
-- **Predictions**: How well were you able to predict values in the dataset? You should both report appropriate metrics based on the type of outcome you're predicting (e.g., root mean squared error v.s. accuracy), as well as a high quality visual showing the strength of your model (**10 points**)
+The DRAFT is a procedure that takes place at the end of June every year, by which the franchises incorporate players under 23 years old to their teams, coming from American universities or from other countries' leagues. This at a salary level implies that the player, depending on his position within the DRAFT, receives a higher monetary amount the higher he is on the list.
 
-### Discussion and Future Work (**10 points**)
-Based on _specific observations_ from the results section, the report clearly provides:
-  - An analysis of the real world implications of the results, at least one full paragraph (**5 points**)
-  - Clear suggestion for directions of future research, at least one full paragraph (**5 points**)
+Therefore, as far as predicting first year players is concerned, we could not know an approximation of their salary. Therefore, our focus would be on players who have been in the NBA for more than one season. Then, the purpose of the model would be that NBA teams could apply an economic plan being able to predict what money they will spend next season on new players based on their statistics. Since franchises in the NBA have a defined seasonal salary limit to pay their players, being able to approximate at an economic level which players they would have available would be a great strategic advance.
+
+As future work related to this approximation of the salary of a player for the next season, we would find in the first place, as we mentioned previously, the creation of an application that with the help of this model and some additional recommendation algorithm, of a competitive strategy in terms of transfers and future team to the franchises. Doing so, that each franchise with this tool can make a plan for the future to try to get a substantial improvement of their statistics per game and make them dream of becoming champions of their conference, and even to be league champions.
