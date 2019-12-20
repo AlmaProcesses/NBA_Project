@@ -11,7 +11,6 @@ library(GGally)
 
 salaries_players <-read.csv("data/salaries_player.csv", stringsAsFactors = F)
 
-
 stats_players <-read.csv("data/logs_players.csv", stringsAsFactors = F)
 
 
