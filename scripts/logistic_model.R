@@ -85,7 +85,7 @@ fitControl <- trainControl(
   repeats = 3
 )
 
-tune_grid <- expand.grid(.mtry = c(2,6,10))
+tune_grid <- expand.grid(.mtry = c(1:10))
 
 trainIndex <- createDataPartition(ml_data$pctSalaryTotal, p = .8, list = FALSE, times = 1)
 
@@ -95,9 +95,14 @@ test_set <- ml_data[ -trainIndex, ]
 model_fit <- train(pctSalaryTotal ~ .,
                    data = ml_data,
                    method = "parRF", # Parallel Random Forest
+                   preProcess="scale",
+                   importance = T,
                    trControl = fitControl,
                    tuneGrid = tune_grid,
                    na.action = na.exclude)
+
+importance <- varImp(model_fit, scale=FALSE)
+
 model_preds <- predict(model_fit, test_set)
 
 test_predicted <- test_set %>% mutate(predictions = model_preds) %>% select(pctSalaryTotal, predictions)
